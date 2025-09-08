@@ -1,0 +1,19 @@
+name: crediya-notification-lambda
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pip
+  - pip:
+      - fastapi
+      - requests
+      - python-dotenv
+      - mangum
+      - uvicorn
+      - boto3
+      - pydantic
+      - pytest
+      - pytest-cov
+      - httpx
+      - starlette

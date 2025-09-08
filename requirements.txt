@@ -1,0 +1,11 @@
+fastapi
+requests
+python-dotenv
+mangum
+uvicorn
+pydantic
+pytest
+httpx
+pytest-cov
+boto3
+starlette
