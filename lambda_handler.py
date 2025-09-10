@@ -11,33 +11,40 @@ def lambda_handler(event, context):
 	"""
 	Handler para AWS Lambda con trigger SQS. Reutiliza la lógica de validación y notificación del endpoint FastAPI.
 	"""
-	from app.infrastructure.sns_notification_adapter import SNSNotificationAdapter
+	from app.infrastructure.ses_notification_adapter import SESNotificationAdapter
 	from app.domain.notification_message import NotificationMessage
 	from app.application.notification_factory import NotificationFactory
 	from app.domain.exceptions import ErrorDeValidacion
 	import json
 
-	sns_topic_arn = os.getenv("SNS_TOPIC_ARN")
 	aws_region = os.getenv("AWS_REGION", "us-east-1")
-	adapter = SNSNotificationAdapter(sns_topic_arn, aws_region)
+	adapter = SESNotificationAdapter(aws_region)
 
 	for record in event.get("Records", []):
 		try:
 			body = record["body"]
-			params = json.loads(body) if isinstance(body, str) else body
+			try:
+				params = json.loads(body) if isinstance(body, str) else body
+			except json.JSONDecodeError as json_error:
+				print(f"ERROR: Error al parsear el mensaje JSON: {json_error}")
+				continue
+			
 			tipo = params.get("tipo", "estado_solicitud")
-			# --- Lógica de validación igual que en el endpoint API ---
 			if tipo == "estado_solicitud":
-				required = ["solicitudId", "estado", "justificacion", "email"]
+				required = ["solicitudId", "estado", "email"]
 				missing = [k for k in required if not params.get(k)]
 				if missing:
 					raise ErrorDeValidacion(f"Faltan campos obligatorios: {', '.join(missing)}")
-			notification = NotificationMessage(tipo=tipo, params=params)
-			message = NotificationFactory.build_message(notification)
-			# ---
-			# adapter.send_email_notification(message)  # Descomentar en AWS
-			# ---
-			print(f"Notificación simulada (no se envió correo): {message}")
+			elif tipo == "capacidad_endeudamiento":
+				required = ["usuario", "resultado", "email"]
+				missing = [k for k in required if not params.get(k)]
+				if missing:
+					raise ErrorDeValidacion(f"Faltan campos obligatorios para capacidad_endeudamiento: {', '.join(missing)}")
+
+			adapter.send_email_notification(params)
+			
+		except ErrorDeValidacion as validation_error:
+			print(f"ERROR {tipo}: {validation_error}")
 		except Exception as e:
 			import logging
-			logging.error(f"Error procesando mensaje SQS: {e}")
+			logging.error(f"ERROR {tipo}: Error inesperado procesando mensaje SQS: {e}")

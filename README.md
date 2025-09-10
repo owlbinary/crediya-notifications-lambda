@@ -1,7 +1,7 @@
 
 # Lambda Notificaciones
 
-Este proyecto implementa una Lambda en Python 3.12 para procesar mensajes desde una cola SQS y enviar notificaciones por correo electrónico usando SNS (arquitectura hexagonal).
+Este proyecto implementa una Lambda en Python 3.12 para procesar mensajes desde una cola SQS y enviar notificaciones por correo electrónico usando SES (arquitectura hexagonal).
 
 ## Requisitos
 - Python 3.12 (recomendado usar conda)
@@ -23,8 +23,8 @@ Este proyecto implementa una Lambda en Python 3.12 para procesar mensajes desde 
    ```
 
 ## Variables de entorno
-### Para procesamiento de notificaciones SQS/SNS
-- `SNS_TOPIC_ARN`: ARN del topic SNS para notificaciones por correo.
+### Para procesamiento de notificaciones SQS/SES
+- `SES_SOURCE_EMAIL`: Email verificado en SES desde el cual se enviarán las notificaciones.
 - `AWS_REGION`: Región AWS (por defecto `us-east-1`).
 
 
@@ -63,14 +63,14 @@ Esto mostrará el porcentaje de líneas cubiertas y las líneas faltantes.
 El proyecto sigue los principios de arquitectura hexagonal (puertos y adaptadores):
 
 - **Puertos (interfaces)**: Definidos en `app/application/ports.py`. Permiten desacoplar la lógica de aplicación de los detalles de infraestructura.
-- **Adaptadores de infraestructura**: Implementan los puertos para interactuar con servicios externos como AWS SQS y SNS. Ejemplo:
+- **Adaptadores de infraestructura**: Implementan los puertos para interactuar con servicios externos como AWS SQS y SES. Ejemplo:
    - `app/infrastructure/sqs_listener_adapter.py`: Adaptador para escuchar mensajes de SQS.
-   - `app/infrastructure/sns_notification_adapter.py`: Adaptador para enviar notificaciones por SNS.
+   - `app/infrastructure/ses_notification_adapter.py`: Adaptador para enviar notificaciones por SES.
 - **Servicios de aplicación**: Orquestan los casos de uso y dependen solo de los puertos, nunca de implementaciones concretas.
 
 
 
-## Caso de uso: Notificaciones parametrizables (SQS/SNS y API)
+## Caso de uso: Notificaciones parametrizables (SQS/SES y API)
 
 La lambda puede ser configurada con un trigger SQS o invocada vía API REST. El mensaje de notificación es parametrizable y reutilizable según el tipo de notificación.
 
@@ -94,4 +94,4 @@ Puedes agregar nuevos tipos de notificación y sus parámetros en el `Notificati
 1. SQS recibe un mensaje (por ejemplo, desde otro microservicio) o se invoca el endpoint `/api/v1/notificar`.
 2. Lambda es invocada por el trigger SQS o por HTTP.
 3. El handler o endpoint construye el mensaje usando `NotificationMessage` y `NotificationFactory` según el tipo.
-4. SNS envía el correo electrónico a los destinatarios configurados en el topic.
+4. SES envía el correo electrónico a los destinatarios configurados en el topic.

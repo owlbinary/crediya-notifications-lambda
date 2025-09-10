@@ -8,4 +8,9 @@ class NotificationFactory:
             solicitud_id = notification.params.get("solicitudId")
             estado = notification.params.get("estado")
             return f"La solicitud de crédito número {solicitud_id} ha sido: {estado}"
-        return json.dumps(notification.params)
+        elif notification.tipo == "capacidad_endeudamiento":
+            usuario = notification.params.get("usuario")
+            resultado = notification.params.get("resultado")
+            return f"Estimado/a {usuario}, su capacidad de endeudamiento ha sido evaluada. Resultado: {resultado}"
+        else:
+            return json.dumps(notification.params)
