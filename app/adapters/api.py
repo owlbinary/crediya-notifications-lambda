@@ -43,11 +43,6 @@ async def notificar(request: NotificarRequest):
 		missing = [k for k in required if not params.get(k)]
 		if missing:
 			raise ErrorDeValidacion(f"Faltan campos obligatorios: {', '.join(missing)}")
-	elif tipo == "capacidad_endeudamiento":
-		required = ["usuario", "resultado", "email"]
-		missing = [k for k in required if not params.get(k)]
-		if missing:
-			raise ErrorDeValidacion(f"Faltan campos obligatorios para capacidad_endeudamiento: {', '.join(missing)}")
 		
 	aws_region = os.getenv("AWS_REGION", "us-east-1")
 	adapter = SESNotificationAdapter(aws_region)

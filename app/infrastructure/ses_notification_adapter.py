@@ -70,9 +70,6 @@ class SESNotificationAdapter(EmailNotificationPort):
             solicitud_id = data.get("solicitudId", "")
             
             return f"Crediya - Solicitud #{solicitud_id} {estado}"
-        elif tipo == "capacidad_endeudamiento":
-            resultado = data.get("resultado", "").upper()
-            return f"Crediya - Evaluación de Capacidad: {resultado}"
         else:
             return "Crediya - Notificación"
             
@@ -84,28 +81,38 @@ class SESNotificationAdapter(EmailNotificationPort):
             tipo_prestamo = data.get("tipoPrestamo", data.get("tipo_prestamo", ""))
             monto = data.get("monto", "")
             plazo = data.get("plazo", "")
+            justificacion = data.get("justificacion", "")
+            plan_pago = data.get("planPago", [])
             
             body = "Crediya - Sistema de Créditos\n\n"
             body += f"Su solicitud #{solicitud_id} ha sido: {estado.upper()}\n\n"
             
+            if justificacion:
+                body += f"Motivo: {justificacion}\n\n"
+            
             if tipo_prestamo:
                 body += f"Tipo de préstamo: {tipo_prestamo}\n"
             if monto:
-                body += f"Monto: ${monto:,}\n"
+                try:
+                    monto_formatted = f"${float(monto):,.2f}"
+                except (ValueError, TypeError):
+                    monto_formatted = f"${monto}"
+                body += f"Monto: {monto_formatted}\n"
             if plazo:
                 body += f"Plazo: {plazo} meses\n"
             
+            if estado.upper() == "APROBADO" and plan_pago:
+                body += "\n--- PLAN DE PAGO ---\n"
+                for cuota in plan_pago:
+                    numero = cuota.get("numero_cuota", "")
+                    valor_cuota = cuota.get("cuota", "")
+                    try:
+                        valor_formatted = f"${float(valor_cuota):,.2f}"
+                    except (ValueError, TypeError):
+                        valor_formatted = f"${valor_cuota}"
+                    body += f"Cuota {numero}: {valor_formatted}\n"
+            
             body += "\nGracias por confiar en Crediya."
-            
-        elif tipo == "capacidad_endeudamiento":
-            usuario = data.get("usuario", "")
-            resultado = data.get("resultado", "")
-            
-            body = "Crediya - Evaluación de Capacidad\n\n"
-            body += f"Estimado/a {usuario},\n\n"
-            body += "Su capacidad de endeudamiento ha sido evaluada.\n"
-            body += f"Resultado: {resultado}\n\n"
-            body += "Gracias por confiar en Crediya."
         else:
             body = "Crediya - Notificación\n\nHa recibido una nueva notificación."
             

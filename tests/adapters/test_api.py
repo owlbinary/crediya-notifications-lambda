@@ -52,39 +52,6 @@ def test_notificar_missing_fields():
     assert response.status_code == 422
     assert "Faltan campos obligatorios" in response.text
 
-
-def test_notificar_capacidad_endeudamiento_success(monkeypatch):
-    """Test successful notification for debt capacity"""
-    from app.adapters import api
-    monkeypatch.setattr(api, "SESNotificationAdapter", DummySESAdapter)
-    client = TestClient(app)
-    payload = {
-        "tipo": "capacidad_endeudamiento",
-        "params": {
-            "usuario": "Juan Pérez",
-            "resultado": "ALTA",
-            "email": "juan@correo.com"
-        }
-    }
-    response = client.post("/api/v1/notificar", json=payload)
-    assert response.status_code == 200
-    assert "Notificación enviada por correo electrónico" in response.json()["message"]
-
-
-def test_notificar_capacidad_endeudamiento_missing_fields():
-    """Test validation for missing fields in debt capacity notification"""
-    client = TestClient(app)
-    payload = {
-        "tipo": "capacidad_endeudamiento",
-        "params": {
-            "email": "test@correo.com"
-        }
-    }
-    response = client.post("/api/v1/notificar", json=payload)
-    assert response.status_code == 422
-    assert "Faltan campos obligatorios para capacidad_endeudamiento" in response.text
-
-
 @patch('app.adapters.api.os.getenv')
 def test_notificar_with_env_region(mock_getenv, monkeypatch):
     """Test notification with environment region configuration"""
