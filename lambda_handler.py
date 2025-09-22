@@ -30,7 +30,7 @@ def lambda_handler(event, context):
 			tipo = params.get("tipo", "estado_solicitud")
 			print(f"Tipo de notificación: {tipo}")
 			
-			if tipo != "estado_solicitud":
+			if tipo not in ["estado_solicitud", "reporte_rendimiento"]:
 				print(f"Tipo {tipo} no es manejado por esta Lambda. Saltando mensaje.")
 				continue
 			
@@ -40,10 +40,16 @@ def lambda_handler(event, context):
 			else:
 				message_params = params
 			
-			required = ["solicitudId", "estado", "email"]
-			missing = [k for k in required if not message_params.get(k)]
-			if missing:
-				raise ErrorDeValidacion(f"Faltan campos obligatorios: {', '.join(missing)}")
+			if tipo == "estado_solicitud":
+				required = ["solicitudId", "estado", "email"]
+				missing = [k for k in required if not message_params.get(k)]
+				if missing:
+					raise ErrorDeValidacion(f"Faltan campos obligatorios para estado_solicitud: {', '.join(missing)}")
+			elif tipo == "reporte_rendimiento":
+				required = ["email", "asunto", "contenido", "fechaGeneracion"]
+				missing = [k for k in required if not message_params.get(k)]
+				if missing:
+					raise ErrorDeValidacion(f"Faltan campos obligatorios para reporte_rendimiento: {', '.join(missing)}")
 
 			adapter.send_email_notification(message_params)
 			

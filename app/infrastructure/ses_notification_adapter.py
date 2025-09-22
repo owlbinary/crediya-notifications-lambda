@@ -35,13 +35,18 @@ class SESNotificationAdapter(EmailNotificationPort):
                 return
             tipo = message_data.get("tipo", "estado_solicitud")
             
+            if "," in recipient_email:
+                email_list = [email.strip() for email in recipient_email.split(",")]
+            else:
+                email_list = [recipient_email.strip()]
+            
             subject = self._build_simple_subject(message_data, tipo)
             body = self._build_simple_body(message_data, tipo)
             
             self.ses.send_email(
                 Source=self.source_email,
                 Destination={
-                    'ToAddresses': [recipient_email]
+                    'ToAddresses': email_list
                 },
                 Message={
                     'Subject': {
@@ -70,50 +75,72 @@ class SESNotificationAdapter(EmailNotificationPort):
             solicitud_id = data.get("solicitudId", "")
             
             return f"Crediya - Solicitud #{solicitud_id} {estado}"
+        elif tipo == "reporte_rendimiento":
+            asunto_custom = data.get("asunto", "")
+            if asunto_custom:
+                return asunto_custom
+            else:
+                return "Crediya - Reporte Diario de Rendimiento"
         else:
             return "Crediya - Notificación"
             
     def _build_simple_body(self, data: dict, tipo: str) -> str:
         """Build simple email body with essential information"""
         if tipo == "estado_solicitud":
-            estado = data.get("estado", "")
-            solicitud_id = data.get("solicitudId", "")
-            tipo_prestamo = data.get("tipoPrestamo", data.get("tipo_prestamo", ""))
-            monto = data.get("monto", "")
-            plazo = data.get("plazo", "")
-            justificacion = data.get("justificacion", "")
-            plan_pago = data.get("planPago", [])
-            
-            body = "Crediya - Sistema de Créditos\n\n"
-            body += f"Su solicitud #{solicitud_id} ha sido: {estado.upper()}\n\n"
-            
-            if justificacion:
-                body += f"Motivo: {justificacion}\n\n"
-            
-            if tipo_prestamo:
-                body += f"Tipo de préstamo: {tipo_prestamo}\n"
-            if monto:
-                try:
-                    monto_formatted = f"${float(monto):,.2f}"
-                except (ValueError, TypeError):
-                    monto_formatted = f"${monto}"
-                body += f"Monto: {monto_formatted}\n"
-            if plazo:
-                body += f"Plazo: {plazo} meses\n"
-            
-            if estado.upper() == "APROBADO" and plan_pago:
-                body += "\n--- PLAN DE PAGO ---\n"
-                for cuota in plan_pago:
-                    numero = cuota.get("numero_cuota", "")
-                    valor_cuota = cuota.get("cuota", "")
-                    try:
-                        valor_formatted = f"${float(valor_cuota):,.2f}"
-                    except (ValueError, TypeError):
-                        valor_formatted = f"${valor_cuota}"
-                    body += f"Cuota {numero}: {valor_formatted}\n"
-            
-            body += "\nGracias por confiar en Crediya."
+            return self._build_loan_status_body(data)
+        elif tipo == "reporte_rendimiento":
+            return self._build_performance_report_body(data)
         else:
-            body = "Crediya - Notificación\n\nHa recibido una nueva notificación."
-            
+            return "Crediya - Notificación\n\nHa recibido una nueva notificación."
+    
+    def _build_loan_status_body(self, data: dict) -> str:
+        """Build body for loan status notifications"""
+        estado = data.get("estado", "")
+        solicitud_id = data.get("solicitudId", "")
+        tipo_prestamo = data.get("tipoPrestamo", data.get("tipo_prestamo", ""))
+        monto = data.get("monto", "")
+        plazo = data.get("plazo", "")
+        justificacion = data.get("justificacion", "")
+        plan_pago = data.get("planPago", [])
+        
+        body = "Crediya - Sistema de Créditos\n\n"
+        body += f"Su solicitud #{solicitud_id} ha sido: {estado.upper()}\n\n"
+        
+        if justificacion:
+            body += f"Motivo: {justificacion}\n\n"
+        
+        if tipo_prestamo:
+            body += f"Tipo de préstamo: {tipo_prestamo}\n"
+        if monto:
+            try:
+                monto_formatted = f"${float(monto):,.2f}"
+            except (ValueError, TypeError):
+                monto_formatted = f"${monto}"
+            body += f"Monto: {monto_formatted}\n"
+        if plazo:
+            body += f"Plazo: {plazo} meses\n"
+        
+        if estado.upper() == "APROBADO" and plan_pago:
+            body += "\n--- PLAN DE PAGO ---\n"
+            for cuota in plan_pago:
+                numero = cuota.get("numero_cuota", "")
+                valor_cuota = cuota.get("cuota", "")
+                try:
+                    valor_formatted = f"${float(valor_cuota):,.2f}"
+                except (ValueError, TypeError):
+                    valor_formatted = f"${valor_cuota}"
+                body += f"Cuota {numero}: {valor_formatted}\n"
         return body
+    
+    def _build_performance_report_body(self, data: dict) -> str:
+        contenido = data.get("contenido", "")
+        fecha_generacion = data.get("fechaGeneracion", "")
+        
+        if contenido:
+            return contenido
+        else:
+            body = "Crediya - Reporte de Rendimiento\n\n"
+            body += "Se ha generado un nuevo reporte de rendimiento.\n"
+            if fecha_generacion:
+                body += f"Fecha de generación: {fecha_generacion}\n"
+            return body
